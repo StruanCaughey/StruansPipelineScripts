@@ -1,0 +1,62 @@
+# Example: Complete Deployment Workflow
+# This file demonstrates how to use the deployment pipeline in your repository
+
+name: Complete Deployment Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - staging
+      - develop
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+      dry_run:
+        description: 'Dry run mode'
+        type: boolean
+        default: false
+
+jobs:
+  # Deploy to development automatically on push to develop branch
+  deploy-dev:
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    uses: StruanCaughey/StruansPipelineScripts/.github/workflows/deploy.yml@main
+    with:
+      environment: development
+      dry_run: false
+
+  # Deploy to staging automatically on push to staging branch
+  deploy-staging:
+    if: github.ref == 'refs/heads/staging' && github.event_name == 'push'
+    uses: StruanCaughey/StruansPipelineScripts/.github/workflows/deploy.yml@main
+    with:
+      environment: staging
+      dry_run: false
+
+  # Deploy to production automatically on push to main branch
+  deploy-prod:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    uses: StruanCaughey/StruansPipelineScripts/.github/workflows/deploy.yml@main
+    with:
+      environment: production
+      dry_run: false
+    secrets:
+      deploy_key: ${{ secrets.PRODUCTION_DEPLOY_KEY }}
+
+  # Manual deployment via workflow_dispatch
+  deploy-manual:
+    if: github.event_name == 'workflow_dispatch'
+    uses: StruanCaughey/StruansPipelineScripts/.github/workflows/deploy.yml@main
+    with:
+      environment: ${{ inputs.environment }}
+      dry_run: ${{ inputs.dry_run }}
+    secrets:
+      deploy_key: ${{ secrets.DEPLOY_KEY }}

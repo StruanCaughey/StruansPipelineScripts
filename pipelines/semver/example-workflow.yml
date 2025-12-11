@@ -1,0 +1,56 @@
+# Example: Semantic Versioning Workflow
+# This file demonstrates how to use the semver tagging pipeline in your repository
+
+name: Semantic Version and Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: 'Version bump type'
+        required: true
+        type: choice
+        options:
+          - auto
+          - major
+          - minor
+          - patch
+        default: auto
+      create_release:
+        description: 'Create GitHub release'
+        type: boolean
+        default: true
+
+jobs:
+  # Automatic version tagging on push to main
+  auto-tag:
+    if: github.event_name == 'push'
+    uses: StruanCaughey/StruansPipelineScripts/.github/workflows/semver-tag.yml@main
+    with:
+      bump_type: auto
+      create_release: true
+    permissions:
+      contents: write
+
+  # Manual version tagging via workflow_dispatch
+  manual-tag:
+    if: github.event_name == 'workflow_dispatch'
+    uses: StruanCaughey/StruansPipelineScripts/.github/workflows/semver-tag.yml@main
+    with:
+      bump_type: ${{ inputs.bump_type }}
+      create_release: ${{ inputs.create_release }}
+    permissions:
+      contents: write
+
+  # Optional: Deploy after tagging
+  deploy-after-tag:
+    needs: [auto-tag, manual-tag]
+    if: always() && (needs.auto-tag.result == 'success' || needs.manual-tag.result == 'success')
+    uses: StruanCaughey/StruansPipelineScripts/.github/workflows/deploy.yml@main
+    with:
+      environment: production
+      dry_run: false
+    secrets: inherit
