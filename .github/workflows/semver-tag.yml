@@ -47,7 +47,7 @@ jobs:
           
           if [[ "$BUMP_TYPE" == "auto" ]]; then
             # Analyze commit messages since last tag
-            COMMITS=$(git log ${{ steps.get_tag.outputs.latest_tag }}..HEAD --pretty=format:"%s")
+            COMMITS=$(git log "${{ steps.get_tag.outputs.latest_tag }}"..HEAD --pretty=format:"%s")
             
             if echo "$COMMITS" | grep -q "BREAKING CHANGE\|^feat!:\|^fix!:"; then
               BUMP_TYPE="major"
@@ -56,6 +56,7 @@ jobs:
             elif echo "$COMMITS" | grep -q "^fix:"; then
               BUMP_TYPE="patch"
             else
+              echo "::warning::No conventional commits found, defaulting to patch version"
               BUMP_TYPE="patch"
             fi
           fi
@@ -71,6 +72,12 @@ jobs:
           
           # Remove 'v' prefix if present
           VERSION=${LATEST_TAG#v}
+          
+          # Validate version format
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Invalid version format: $VERSION (expected: X.Y.Z)"
+            exit 1
+          fi
           
           # Split version into components
           IFS='.' read -ra VERSION_PARTS <<< "$VERSION"

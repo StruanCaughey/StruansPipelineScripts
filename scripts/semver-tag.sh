@@ -37,7 +37,7 @@ determine_bump_type() {
     if [[ "$latest_tag" == "v0.0.0" ]]; then
         commits=$(git log --pretty=format:"%s")
     else
-        commits=$(git log ${latest_tag}..HEAD --pretty=format:"%s")
+        commits=$(git log "${latest_tag}"..HEAD --pretty=format:"%s")
     fi
     
     if echo "$commits" | grep -qE "BREAKING CHANGE|^feat!:|^fix!:"; then
@@ -47,6 +47,7 @@ determine_bump_type() {
     elif echo "$commits" | grep -qE "^fix:"; then
         echo "patch"
     else
+        print_warning "No conventional commits found, defaulting to patch version" >&2
         echo "patch"
     fi
 }
@@ -58,6 +59,12 @@ calculate_new_version() {
     
     # Remove 'v' prefix if present
     current_version=${current_version#v}
+    
+    # Validate version format
+    if [[ ! "$current_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        print_error "Invalid version format: $current_version (expected: X.Y.Z)"
+        exit 1
+    fi
     
     # Split version into components
     IFS='.' read -ra version_parts <<< "$current_version"
